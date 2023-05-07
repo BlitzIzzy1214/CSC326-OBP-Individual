@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Add Ingredient</title>
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required, input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<body>
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		var app = angular.module('myApp', []);
+		app.controller('ingredientsCtrl', function($scope, $http, $q) {
+
+			$scope.reset = function() {
+				$scope.ingredient = {
+					name : '',
+					amount : ''
+				};
+				if (undefined != $scope.addIngredientForm) {
+					$scope.addIngredientForm.$setPristine(); // reset Form
+				}
+			}
+			
+			$scope.submit = function() {
+				$scope.addIngredient();
+
+				$scope.reset();
+			}
+			
+			// Add ingredient to inventory
+			$scope.addIngredient = function() {
+				$scope.submissionFailure = false;
+				$scope.submissionSuccess = false;
+				
+				$http.post("/api/v1/ingredients", $scope.ingredient).then(
+						function(response) {
+							$scope.submissionSuccess = true;
+							$scope.submissionFailure = false;
+						}, function(errResponse) {
+							console.log(errResponse);
+							$scope.submissionSuccess = false;
+							$scope.submissionFailure = true;
+							$scope.error = "Error while adding ingredient";
+						});
+
+			}
+
+		});
+
+		/*]]>*/
+	</script>
+
+	<div layout:fragment="content" class="generic-container ng-cloak"
+		ng-app="myApp" ng-controller="ingredientsCtrl">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="lead">Add Ingredient</span>
+			</div>
+			
+		
+			<div class="formcontainer">
+				<form ng-submit="submit()" name="addIngredientForm"
+					class="form-horizontal">
+			
+					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="name">Name <span
+								style="color: red;">*</span></label>
+							<div class="col-md-3">
+								<input type="text" ng-model="ingredient.name" name="name"
+									class="form-control input-sm"
+									placeholder="Enter ingredient name" required="0" min="0"/>
+							</div>
+						</div>
+					</div>
+			
+					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="amount">Quantity <span
+								style="color: red;">*</span></label> <span class="has-error"
+								ng-show="addIngredientForm.amount.$error.min">Minimum amount
+								is 0.</span>
+							<div class="col-md-3">
+								<input type="number" ng-model="ingredient.amount" name="amount"
+									class="form-control input-sm"
+									placeholder="Enter amount" required="0" min="0"/>
+							</div>
+						</div>
+					</div>
+			
+						<div class="row">
+							<label style="color: red;">* Required field</label>
+								<div class="form-actions floatRight">
+									<input type="submit" value="Add Ingredient"
+										class="btn btn-primary btn-sm"
+										ng-disabled="addIngredientForm.$invalid" />
+									<button type="button" ng-click="reset()"
+										class="btn btn-warning btn-sm"
+										ng-disabled="addIngredientForm.$pristine">Reset Form</button>
+								</div>
+						</div>
+
+				</form>
+			</div>
+			
+			<div ng-show="submissionSuccess" class="success">Ingredient was added successfully.</div>
+			<div ng-show="submissionFailure">{{ error }}</div>
+			
+		</div>
+
+		<a href="/index">Home</a>
+		
+	</div>
+
+</body>
+</html>

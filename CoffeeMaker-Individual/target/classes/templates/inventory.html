@@ -1,0 +1,203 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Inventory</title>
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
+</head>
+
+<body>
+
+
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app.controller('inventoryCtrl', function($scope, $http) {
+			
+			$scope.getInventory = function() {
+				$http.get("/api/v1/inventory").then(function(response) {
+					$scope.inventory = response.data;
+				}, function(rejection) {
+					console.error("Error while getting Inventory");
+				})
+			}
+			
+			$scope.getInventory();
+			
+			$scope.inventory = {
+				ingredients : []
+			};
+			
+			$scope.submissions = [];
+			$scope.amounts = [];
+			
+			$scope.getIngredients = function() {
+				$http.get("/api/v1/ingredients").then(function(response) {
+					$scope.ingredients = response.data;
+					// Store all ingredients in new inventory
+					for (var i = 0, len = $scope.ingredients.length; i < len; i++) {
+						var ingredient = $scope.ingredients[i];
+						
+						$scope.inventory.ingredients[i] = ingredient;
+						$scope.submissions[i] = false;
+						$scope.amounts[i] = 0;
+					}
+				}, function(rejection) {
+					console.error("Error while getting ingredients");
+				})
+			}
+			
+			$scope.getIngredients();
+
+			// Submit the updated inventory
+			function updateInventory() {
+				$scope.success = false;
+				$scope.failure = false;
+				
+				// Update the inventory amounts with the stored amounts
+				for (var i = 0, len = $scope.ingredients.length; i < len; i++) {
+					$scope.inventory.ingredients[i].amount += $scope.amounts[i];
+				}
+
+				$http.put("/api/v1/inventory", $scope.inventory).then(
+						function(response) {
+							$scope.getIngredients();
+
+						}, function(rejection) {
+							$scope.failure = true;
+							$scope.success = false;
+							console.error("Error while updating Inventory!");
+						});
+				$scope.success = !($scope.failure);
+			}
+			
+			// Add individual quantities to stored update values
+			$scope.add = function(index, quantity) {
+				$scope.amounts[index] = quantity;
+				$scope.submissions[index] = true;
+			}
+
+			$scope.submit = function() {
+				updateInventory();
+				$scope.reset();
+			}
+
+			$scope.reset = function() {
+				$scope.inventory = {
+					ingredients : []
+				};
+				
+				$http.get("/api/v1/ingredients").then(function(response) {
+					$scope.ingredients = response.data;
+					$scope.inventory.ingredients = [];
+					$scope.submissions = [];
+					$scope.amounts = [];
+					// Store all ingredients in new inventory
+					for (var i = 0, len = $scope.ingredients.length; i < len; i++) {
+						var ingredient = $scope.ingredients[i];
+						
+						$scope.inventory.ingredients[i] = ingredient;
+						$scope.submissions[i] = false;
+						$scope.amounts[i] = 0;
+					}
+				}, function(rejection) {
+					console.error("Error while getting ingredients");
+				})
+
+				if (undefined != $scope.addInventoryForm) {
+					$scope.addInventoryForm.$setPristine(); //reset Form
+				}
+			}
+
+			$scope.reset();
+
+		});
+		/*]]>*/
+	</script>
+
+
+
+	<div class="generic-container ng-cloak" ng-app="myApp"
+		ng-controller="inventoryCtrl as ctrl">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="lead">Update Inventory</span>
+			</div>
+			
+
+			<div class="formcontainer">
+			
+			<div class="row">
+				<label class="col-md-3 control-lable" style="color: red;">Please add each ingredient individually.</label>
+			</div><br />
+			
+			<div class="row">
+				<label class="h4 col-md-2">Ingredients</label>
+				<label class="h4 col-md-2">Current Stock</label>
+				<label class="h4 col-md-2">Add Stock</label>
+			</div><br />
+				<form ng-submit="submit()" name="addInventoryForm"
+					class="form-horizontal">
+
+
+					<div class="row" ng-repeat="amount in amounts track by $index">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="file">{{ ingredients[$index].name }} <span
+								style="color: red;">*</span></label>
+							<div class="col-md-2 text-center">
+								<label id="currentAmount">{{ ingredients[$index].amount }}</label>
+							</div>
+							<button type="button" ng-click="add([$index], quantity)"
+								class="btn btn-primary btn-sm"
+								ng-disabled="addInventoryForm.$pristine">Update</button>
+								<span id="currentAmount" ng-show="submissions[$index]">Amount to add: {{ amounts[$index] }}</span>
+							<div class="col-md-3">
+								<input type="number" ng-model="quantity" name="quantity"
+									class="form-control input-sm"
+									placeholder="Enter amount" required="0" min="0"/>
+							</div>
+						</div>
+					</div>
+
+
+					<div class="row">
+						<label style="color: red;">* Required field</label>
+						<div class="form-actions floatRight">
+							<input type="submit" value="Add Stock" 
+								class="btn btn-primary btn-sm"
+								ng-disabled="addInventoryForm.$invalid" />
+							<button type="button" ng-click="reset()"
+								class="btn btn-warning btn-sm" 
+								ng-disabled="addInventoryForm.$pristine">Reset Form</button>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div ng-show="success">Inventory Updated</div>
+			<div ng-show="failure">Error while updating inventory.</div>
+		</div>
+
+		<a href="/index">Home</a>
+	</div>
+
+
+
+</body>
+</html>
